@@ -49,6 +49,15 @@ export default async function AdminClientsPage() {
                   >
                     /c/{c.slug}
                   </a>
+                  {" · "}
+                  <a
+                    href={`/c/${c.slug}/leads`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-[#a8a29e] hover:text-[#c98a4b]"
+                  >
+                    leads portal
+                  </a>
                 </div>
               </div>
               <Link

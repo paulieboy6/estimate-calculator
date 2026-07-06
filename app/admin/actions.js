@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { TRADES, TRADE_KEYS } from "@/lib/trades";
+import { hashPortalPassword } from "@/lib/portalAuth";
 
 function slugify(input) {
   return input
@@ -87,20 +88,24 @@ export async function addClient(formData) {
   const brandColor = formData.get("brand_color")?.toString() || "#c98a4b";
   const backgroundColor = formData.get("background_color")?.toString() || "#1c1917";
   const logoUrl = formData.get("logo_url")?.toString().trim() || null;
+  const portalPassword = formData.get("portal_password")?.toString().trim();
 
   if (!businessName || !slug) {
     throw new Error("Business name and slug are required.");
   }
 
+  const insertPayload = {
+    business_name: businessName,
+    slug,
+    brand_color: brandColor,
+    background_color: backgroundColor,
+    logo_url: logoUrl,
+  };
+  if (portalPassword) insertPayload.portal_password_hash = hashPortalPassword(portalPassword);
+
   const { data: client, error } = await supabase
     .from("clients")
-    .insert({
-      business_name: businessName,
-      slug,
-      brand_color: brandColor,
-      background_color: backgroundColor,
-      logo_url: logoUrl,
-    })
+    .insert(insertPayload)
     .select()
     .single();
 
@@ -119,6 +124,7 @@ export async function updateClient(clientId, formData) {
   const brandColor = formData.get("brand_color")?.toString() || "#c98a4b";
   const backgroundColor = formData.get("background_color")?.toString() || "#1c1917";
   const logoUrl = formData.get("logo_url")?.toString().trim() || null;
+  const portalPassword = formData.get("portal_password")?.toString().trim();
 
   if (!businessName || !slug) {
     throw new Error("Business name and slug are required.");
@@ -131,16 +137,18 @@ export async function updateClient(clientId, formData) {
     .single();
   if (fetchError) throw new Error(`Could not find client: ${fetchError.message}`);
 
-  const { error } = await supabase
-    .from("clients")
-    .update({
-      business_name: businessName,
-      slug,
-      brand_color: brandColor,
-      background_color: backgroundColor,
-      logo_url: logoUrl,
-    })
-    .eq("id", clientId);
+  const updatePayload = {
+    business_name: businessName,
+    slug,
+    brand_color: brandColor,
+    background_color: backgroundColor,
+    logo_url: logoUrl,
+  };
+  // Only touch the password hash if a new password was actually typed in —
+  // leaving the field blank keeps whatever password the client already has.
+  if (portalPassword) updatePayload.portal_password_hash = hashPortalPassword(portalPassword);
+
+  const { error } = await supabase.from("clients").update(updatePayload).eq("id", clientId);
   if (error) throw new Error(`Could not update client: ${error.message}`);
 
   await saveClientConfig(supabase, clientId, formData);

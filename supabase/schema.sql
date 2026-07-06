@@ -13,12 +13,14 @@ create table if not exists clients (
   logo_url text,
   brand_color text not null default '#c98a4b',
   background_color text not null default '#1c1917',
+  portal_password_hash text,
   created_at timestamptz not null default now()
 );
 
--- Migration for projects created before background_color existed — safe to
--- run again, `if not exists` makes it a no-op once the column is there.
+-- Migrations for projects created before these columns existed — safe to
+-- run again, `if not exists` makes them a no-op once the columns are there.
 alter table clients add column if not exists background_color text not null default '#1c1917';
+alter table clients add column if not exists portal_password_hash text;
 
 -- Which trades (and, within a trade, which tiers) a client's page shows.
 -- tier_keys empty/null means "show all tiers of this trade".

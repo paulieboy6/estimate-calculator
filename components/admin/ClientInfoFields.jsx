@@ -52,6 +52,23 @@ export default function ClientInfoFields({ client = {} }) {
           className={inputClass}
         />
       </div>
+      <div className="sm:col-span-2">
+        <label className="block text-sm text-[#a8a29e] mb-1.5">Client leads portal password</label>
+        <input
+          type="password"
+          name="portal_password"
+          placeholder={
+            client.portal_password_hash
+              ? "Leave blank to keep current password"
+              : "Set a password to let this client view their leads"
+          }
+          className={inputClass}
+        />
+        <p className="text-xs text-[#6b6560] mt-1">
+          Give this password to your client — they sign in at /c/{client.slug || "{slug}"}/leads to see
+          only their own leads.
+        </p>
+      </div>
     </div>
   );
 }
