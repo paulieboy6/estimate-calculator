@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
 import { ChevronRight, Phone, Mail, User, CheckCircle2 } from "lucide-react";
 import { getEffectiveTrades, formatUSD } from "@/lib/trades";
 import { readableColor } from "@/lib/color";
@@ -55,6 +55,18 @@ export default function EstimateCalculator({
   // even though it works fine as a button/border accent elsewhere.
   const eyebrowColor = readableColor(accent, { background });
 
+  // The wrapper div only guarantees the visible viewport height (and mobile
+  // browsers' collapsing address bars, plus elastic overscroll bounce, can
+  // briefly reveal whatever's behind it). Sync <body> itself to the same
+  // color so there's never a gap showing the default page background.
+  useLayoutEffect(() => {
+    const previous = document.body.style.backgroundColor;
+    document.body.style.backgroundColor = background;
+    return () => {
+      document.body.style.backgroundColor = previous;
+    };
+  }, [background]);
+
   function selectTrade(key) {
     setTradeKey(key);
     setTierKey(null);
@@ -101,7 +113,7 @@ export default function EstimateCalculator({
 
   return (
     <div
-      className="min-h-screen bg-[var(--bg)] text-[#f5f0e8] font-sans flex flex-col items-center px-4 py-10"
+      className="min-h-dvh bg-[var(--bg)] text-[#f5f0e8] font-sans flex flex-col items-center px-4 py-10"
       style={{ "--accent": accent, "--bg": background }}
     >
       <div className="w-full max-w-xl">
