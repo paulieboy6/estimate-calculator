@@ -6,12 +6,6 @@ import { getEffectiveTrades, formatUSD } from "@/lib/trades";
 import { readableColor, contrastingNeutral, textPalette } from "@/lib/color";
 import { submitLead } from "@/app/actions";
 
-const WHAT_TO_EXPECT = [
-  { n: "1", label: "Pick your project" },
-  { n: "2", label: "See your range instantly" },
-  { n: "3", label: "A local pro confirms details" },
-];
-
 // Ported from the original estimate-calculator.jsx. Trades/tiers shown and
 // their $ numbers can be scoped per-client via `tradeKeys` / `tierKeys` /
 // `overrides` (all plain, serializable data passed down from a Server
@@ -59,6 +53,15 @@ export default function EstimateCalculator({
   const phoneNumber = branding?.phoneNumber;
   const serviceArea = branding?.serviceArea;
   const licensedInsured = branding?.licensedInsured;
+  // Every "a local contractor will follow up" style sentence below uses
+  // this — the client's own business name wherever we have one, falling
+  // back to generic wording only on the branding-less "/" demo page.
+  const providerLabel = businessName || "A local contractor";
+  const whatToExpect = [
+    { n: "1", label: "Pick your project" },
+    { n: "2", label: "See your range instantly" },
+    { n: "3", label: `${businessName || "A local pro"} confirms details` },
+  ];
 
   // Three separate contrast checks, since the same accent color can sit on
   // three different surfaces: directly on the page background (eyebrow
@@ -171,8 +174,8 @@ export default function EstimateCalculator({
             Get a same-day project range
           </h1>
           <p className="text-sm text-[var(--fg-muted)] mt-2 leading-relaxed">
-            Answer three questions and see what jobs like yours typically run.
-            A local contractor follows up with a firm quote.
+            Answer three questions and see what jobs like yours typically run.{" "}
+            {providerLabel} follows up with a firm quote.
           </p>
         </div>
 
@@ -210,7 +213,7 @@ export default function EstimateCalculator({
 
             {trades.length > 0 && (
               <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-5 sm:gap-4">
-                {WHAT_TO_EXPECT.map((s) => (
+                {whatToExpect.map((s) => (
                   <div key={s.n} className="flex items-center gap-3 sm:flex-col sm:items-start sm:gap-2.5">
                     <span
                       className="flex items-center justify-center w-7 h-7 rounded-full border border-[#3a3532] text-xs font-medium shrink-0"
@@ -313,7 +316,7 @@ export default function EstimateCalculator({
             </button>
             <h2 className="text-lg font-semibold mb-1 text-[var(--fg)]">Where should we send it?</h2>
             <p className="text-sm text-[var(--fg-muted)] mb-5">
-              A local contractor will follow up to confirm details and firm up pricing.
+              {providerLabel} will follow up to confirm details and firm up pricing.
             </p>
             <form onSubmit={submit} className="space-y-3">
               <div className="flex items-center border border-[#3a3532] bg-[#26221f] rounded-md px-4 py-2.5 focus-within:border-[var(--accent)]">
@@ -372,7 +375,7 @@ export default function EstimateCalculator({
               <span className="text-[var(--fg)] font-medium">
                 {formatUSD(rangeLow)} – {formatUSD(rangeHigh)}
               </span>{" "}
-              is on its way. A contractor will reach out at {lead.phone} to confirm details.
+              is on its way. {providerLabel} will reach out at {lead.phone} to confirm details.
             </p>
             <button onClick={reset} className="text-sm hover:underline" style={{ color: accentOnBg }}>
               Start another estimate
