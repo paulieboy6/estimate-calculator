@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { ChevronRight, Phone, Mail, User, CheckCircle2 } from "lucide-react";
 import { getEffectiveTrades, formatUSD } from "@/lib/trades";
+import { readableColor } from "@/lib/color";
 import { submitLead } from "@/app/actions";
 
 // Ported from the original estimate-calculator.jsx. Trades/tiers shown and
@@ -47,6 +48,11 @@ export default function EstimateCalculator({
   const accent = branding?.brandColor || "#c98a4b";
   const businessName = branding?.businessName;
   const logoUrl = branding?.logoUrl;
+  // The eyebrow label below sits directly on the dark background, so its
+  // color needs its own contrast check — a client's brand color can be too
+  // light/dark to read there even though it works fine as a button/border
+  // accent elsewhere.
+  const eyebrowColor = readableColor(accent);
 
   function selectTrade(key) {
     setTradeKey(key);
@@ -108,7 +114,7 @@ export default function EstimateCalculator({
               className="h-8 mb-4 object-contain object-left"
             />
           )}
-          <p className="text-xs tracking-[0.2em] uppercase text-[var(--accent)] mb-2">
+          <p className="text-xs tracking-[0.2em] uppercase mb-2" style={{ color: eyebrowColor }}>
             {businessName || "Ballpark, not a bid"}
           </p>
           <h1 className="text-3xl font-bold tracking-tight" style={{ fontFamily: "Georgia, serif" }}>
