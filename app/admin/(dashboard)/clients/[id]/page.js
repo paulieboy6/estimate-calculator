@@ -12,7 +12,7 @@ async function getClientData(id) {
   const { data: client } = await supabase
     .from("clients")
     .select(
-      "id, slug, business_name, brand_color, background_color, logo_url, portal_password_hash, phone_number, service_area, licensed_insured"
+      "id, slug, business_name, brand_color, theme, font, logo_url, portal_password_hash, phone_number, service_area, licensed_insured"
     )
     .eq("id", id)
     .maybeSingle();

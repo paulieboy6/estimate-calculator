@@ -12,7 +12,8 @@ create table if not exists clients (
   business_name text not null,
   logo_url text,
   brand_color text not null default '#c98a4b',
-  background_color text not null default '#1c1917',
+  theme text not null default 'dark' check (theme in ('light', 'dark')),
+  font text not null default 'system' check (font in ('system', 'serif', 'modern')),
   portal_password_hash text,
   phone_number text,
   service_area text,
@@ -22,11 +23,20 @@ create table if not exists clients (
 
 -- Migrations for projects created before these columns existed — safe to
 -- run again, `if not exists` makes them a no-op once the columns are there.
-alter table clients add column if not exists background_color text not null default '#1c1917';
 alter table clients add column if not exists portal_password_hash text;
 alter table clients add column if not exists phone_number text;
 alter table clients add column if not exists service_area text;
 alter table clients add column if not exists licensed_insured boolean not null default false;
+alter table clients add column if not exists theme text not null default 'dark';
+alter table clients add column if not exists font text not null default 'system';
+-- Postgres has no "ADD CONSTRAINT IF NOT EXISTS" — drop then re-add instead,
+-- which is safe to run repeatedly.
+alter table clients drop constraint if exists clients_theme_check;
+alter table clients add constraint clients_theme_check check (theme in ('light', 'dark'));
+alter table clients drop constraint if exists clients_font_check;
+alter table clients add constraint clients_font_check check (font in ('system', 'serif', 'modern'));
+-- background_color has been replaced by the curated `theme` field above.
+alter table clients drop column if exists background_color;
 
 -- Which trades (and, within a trade, which tiers) a client's page shows.
 -- tier_keys empty/null means "show all tiers of this trade".

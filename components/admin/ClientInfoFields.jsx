@@ -1,3 +1,5 @@
+import { FONT_OPTIONS } from "@/lib/theme";
+
 const inputClass =
   "w-full bg-[#1c1917] border border-[#3a3532] rounded-md px-3 py-2 text-[#f5f0e8] outline-none focus:border-[#c98a4b] placeholder-[#6b6560]";
 
@@ -35,13 +37,32 @@ export default function ClientInfoFields({ client = {} }) {
         />
       </div>
       <div>
-        <label className="block text-sm text-[#a8a29e] mb-1.5">Background color</label>
-        <input
-          type="color"
-          name="background_color"
-          defaultValue={client.background_color || "#1c1917"}
-          className="h-10 w-20 bg-[#1c1917] border border-[#3a3532] rounded-md"
-        />
+        <label className="block text-sm text-[#a8a29e] mb-1.5">Theme</label>
+        <div className="flex gap-4 h-10 items-center">
+          <label className="flex items-center gap-1.5 text-sm">
+            <input
+              type="radio"
+              name="theme"
+              value="dark"
+              defaultChecked={(client.theme || "dark") === "dark"}
+            />
+            Dark
+          </label>
+          <label className="flex items-center gap-1.5 text-sm">
+            <input type="radio" name="theme" value="light" defaultChecked={client.theme === "light"} />
+            Light
+          </label>
+        </div>
+      </div>
+      <div>
+        <label className="block text-sm text-[#a8a29e] mb-1.5">Font</label>
+        <select name="font" defaultValue={client.font || "system"} className={inputClass}>
+          {Object.entries(FONT_OPTIONS).map(([key, opt]) => (
+            <option key={key} value={key}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
       </div>
       <div>
         <label className="block text-sm text-[#a8a29e] mb-1.5">Logo URL (optional)</label>

@@ -86,7 +86,10 @@ export async function addClient(formData) {
   const businessName = formData.get("business_name")?.toString().trim();
   const slug = slugify(formData.get("slug")?.toString().trim() || businessName || "");
   const brandColor = formData.get("brand_color")?.toString() || "#c98a4b";
-  const backgroundColor = formData.get("background_color")?.toString() || "#1c1917";
+  const theme = formData.get("theme")?.toString() === "light" ? "light" : "dark";
+  const font = ["system", "serif", "modern"].includes(formData.get("font")?.toString())
+    ? formData.get("font").toString()
+    : "system";
   const logoUrl = formData.get("logo_url")?.toString().trim() || null;
   const portalPassword = formData.get("portal_password")?.toString().trim();
   const phoneNumber = formData.get("phone_number")?.toString().trim() || null;
@@ -101,7 +104,8 @@ export async function addClient(formData) {
     business_name: businessName,
     slug,
     brand_color: brandColor,
-    background_color: backgroundColor,
+    theme,
+    font,
     logo_url: logoUrl,
     phone_number: phoneNumber,
     service_area: serviceArea,
@@ -128,7 +132,10 @@ export async function updateClient(clientId, formData) {
   const businessName = formData.get("business_name")?.toString().trim();
   const slug = slugify(formData.get("slug")?.toString().trim() || businessName || "");
   const brandColor = formData.get("brand_color")?.toString() || "#c98a4b";
-  const backgroundColor = formData.get("background_color")?.toString() || "#1c1917";
+  const theme = formData.get("theme")?.toString() === "light" ? "light" : "dark";
+  const font = ["system", "serif", "modern"].includes(formData.get("font")?.toString())
+    ? formData.get("font").toString()
+    : "system";
   const logoUrl = formData.get("logo_url")?.toString().trim() || null;
   const portalPassword = formData.get("portal_password")?.toString().trim();
   const phoneNumber = formData.get("phone_number")?.toString().trim() || null;
@@ -150,7 +157,8 @@ export async function updateClient(clientId, formData) {
     business_name: businessName,
     slug,
     brand_color: brandColor,
-    background_color: backgroundColor,
+    theme,
+    font,
     logo_url: logoUrl,
     phone_number: phoneNumber,
     service_area: serviceArea,

@@ -1,10 +1,29 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { ChevronRight, Phone, Mail, User, CheckCircle2, ShieldCheck } from "lucide-react";
 import { getEffectiveTrades, formatUSD } from "@/lib/trades";
-import { readableColor, contrastingNeutral, textPalette } from "@/lib/color";
+import { readableColor, contrastingNeutral } from "@/lib/color";
+import { getTheme, getFontStack } from "@/lib/theme";
 import { submitLead } from "@/app/actions";
+
+// window.top can't change during a session, so no real subscription is
+// needed — this only exists to satisfy useSyncExternalStore's signature.
+function subscribeToNothing() {
+  return () => {};
+}
+
+function isInIframe() {
+  try {
+    return window.self !== window.top;
+  } catch {
+    return true; // cross-origin access throws => definitely embedded
+  }
+}
+
+function isInIframeServerSnapshot() {
+  return false;
+}
 
 // Ported from the original estimate-calculator.jsx. Trades/tiers shown and
 // their $ numbers can be scoped per-client via `tradeKeys` / `tierKeys` /
@@ -29,6 +48,11 @@ export default function EstimateCalculator({
   const [lead, setLead] = useState({ name: "", phone: "", email: "" });
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const isEmbedded = useSyncExternalStore(
+    subscribeToNothing,
+    isInIframe,
+    isInIframeServerSnapshot
+  );
 
   const trade = tradeKey ? trades.find((t) => t.key === tradeKey) : null;
   const tier = trade && tierKey ? trade.tiers.find((t) => t.key === tierKey) : null;
@@ -47,7 +71,8 @@ export default function EstimateCalculator({
   }
 
   const accent = branding?.brandColor || "#c98a4b";
-  const background = branding?.backgroundColor || "#1c1917";
+  const theme = getTheme(branding?.theme);
+  const fontStack = getFontStack(branding?.font);
   const businessName = branding?.businessName;
   const logoUrl = branding?.logoUrl;
   const phoneNumber = branding?.phoneNumber;
@@ -63,26 +88,32 @@ export default function EstimateCalculator({
     { n: "3", label: `${businessName || "A local pro"} confirms details` },
   ];
 
-  // Three separate contrast checks, since the same accent color can sit on
-  // three different surfaces: directly on the page background (eyebrow
-  // label, "start over" link), as the fill behind a CTA button (its own
-  // text needs to read against the accent itself), or inside a fixed dark
-  // card (unaffected — those always use the app's original light palette).
-  const accentOnBg = readableColor(accent, { background });
+  // Two separate contrast checks, since the same accent color sits on two
+  // different surfaces: directly on the page background (eyebrow label,
+  // step numbers, "start over" link) or as the fill behind a CTA button
+  // (whose own text needs to read against the accent itself). Text inside
+  // cards just uses the theme's own fg color — cards are always the same
+  // "lightness family" as the page background within a theme, so one
+  // color works everywhere.
+  const accentOnBg = readableColor(accent, { background: theme.bg });
   const onAccent = contrastingNeutral(accent);
-  const { fg, muted, faint } = useMemo(() => textPalette(background), [background]);
 
-  // The wrapper div only guarantees the visible viewport height (and mobile
+  // The wrapper only guarantees the visible viewport height (and mobile
   // browsers' collapsing address bars, plus elastic overscroll bounce, can
   // briefly reveal whatever's behind it). Sync <body> itself to the same
   // color so there's never a gap showing the default page background.
   useLayoutEffect(() => {
     const previous = document.body.style.backgroundColor;
-    document.body.style.backgroundColor = background;
+    document.body.style.backgroundColor = theme.bg;
     return () => {
       document.body.style.backgroundColor = previous;
     };
-  }, [background]);
+  }, [theme.bg]);
+
+  // isEmbedded (above) drops the full-viewport height and generous
+  // standalone-page padding when in an iframe on a client's own site, so the
+  // widget blends into the host page instead of looking like its own
+  // boxed-in section.
 
   function selectTrade(key) {
     setTradeKey(key);
@@ -130,8 +161,19 @@ export default function EstimateCalculator({
 
   return (
     <div
-      className="min-h-dvh bg-[var(--bg)] text-[var(--fg)] font-sans flex flex-col items-center px-4 py-10"
-      style={{ "--accent": accent, "--bg": background, "--fg": fg, "--fg-muted": muted, "--fg-faint": faint }}
+      className={`bg-[var(--bg)] text-[var(--fg)] flex flex-col items-center ${
+        isEmbedded ? "px-3 py-4" : "min-h-dvh px-4 py-10"
+      }`}
+      style={{
+        "--accent": accent,
+        "--bg": theme.bg,
+        "--card": theme.card,
+        "--card-border": theme.border,
+        "--fg": theme.fg,
+        "--fg-muted": theme.muted,
+        "--fg-faint": theme.faint,
+        fontFamily: fontStack,
+      }}
     >
       <div className="w-full max-w-2xl flex flex-col flex-1">
         {/* Identity bar */}
@@ -143,7 +185,7 @@ export default function EstimateCalculator({
                 <img
                   src={logoUrl}
                   alt={businessName || "Logo"}
-                  className="h-10 w-10 rounded-md object-contain bg-[#26221f] border border-[#3a3532] p-1 shrink-0"
+                  className="h-10 w-10 rounded-md object-contain bg-[var(--card)] border border-[var(--card-border)] p-1 shrink-0"
                 />
               )}
               {businessName && (
@@ -153,7 +195,7 @@ export default function EstimateCalculator({
             {phoneNumber && (
               <a
                 href={`tel:${phoneNumber.replace(/[^\d+]/g, "")}`}
-                className="flex items-center gap-1.5 text-sm font-medium border border-[#3a3532] rounded-full pl-2.5 pr-3.5 py-1.5 whitespace-nowrap hover:border-[var(--accent)] transition-colors text-[var(--fg)] shrink-0"
+                className="flex items-center gap-1.5 text-sm font-medium border border-[var(--card-border)] rounded-full pl-2.5 pr-3.5 py-1.5 whitespace-nowrap hover:border-[var(--accent)] transition-colors text-[var(--fg)] shrink-0"
               >
                 <Phone className="w-3.5 h-3.5 text-[var(--accent)]" strokeWidth={2} />
                 {phoneNumber}
@@ -163,14 +205,11 @@ export default function EstimateCalculator({
         )}
 
         {/* Header */}
-        <div className="mb-8 border-b border-[#3a3532] pb-6">
+        <div className="mb-8 border-b border-[var(--card-border)] pb-6">
           <p className="text-xs tracking-[0.2em] uppercase mb-2" style={{ color: accentOnBg }}>
             Ballpark, not a bid
           </p>
-          <h1
-            className="text-3xl font-bold tracking-tight text-[var(--fg)]"
-            style={{ fontFamily: "Georgia, serif" }}
-          >
+          <h1 className="text-3xl font-bold tracking-tight text-[var(--fg)]">
             Get a same-day project range
           </h1>
           <p className="text-sm text-[var(--fg-muted)] mt-2 leading-relaxed">
@@ -194,18 +233,18 @@ export default function EstimateCalculator({
                   <button
                     key={t.key}
                     onClick={() => selectTrade(t.key)}
-                    className="group flex items-center justify-between border border-[#3a3532] hover:border-[var(--accent)] bg-[#26221f] rounded-lg px-5 py-4 transition-colors text-left"
+                    className="group flex items-center justify-between border border-[var(--card-border)] hover:border-[var(--accent)] bg-[var(--card)] rounded-lg px-5 py-4 transition-colors text-left"
                   >
                     <span className="flex items-center gap-4">
                       <Icon className="w-5 h-5 text-[var(--accent)]" strokeWidth={1.5} />
                       <span>
-                        <span className="block font-medium text-[#f5f0e8]">{t.label}</span>
-                        <span className="block text-xs text-[#a8a29e]">
+                        <span className="block font-medium text-[var(--fg)]">{t.label}</span>
+                        <span className="block text-xs text-[var(--fg-muted)]">
                           {formatUSD(t.low)}–{formatUSD(t.high)} per {t.unit}
                         </span>
                       </span>
                     </span>
-                    <ChevronRight className="w-4 h-4 text-[#6b6560] group-hover:text-[var(--accent)] transition-colors" />
+                    <ChevronRight className="w-4 h-4 text-[var(--fg-faint)] group-hover:text-[var(--accent)] transition-colors" />
                   </button>
                 );
               })}
@@ -216,7 +255,7 @@ export default function EstimateCalculator({
                 {whatToExpect.map((s) => (
                   <div key={s.n} className="flex items-center gap-3 sm:flex-col sm:items-start sm:gap-2.5">
                     <span
-                      className="flex items-center justify-center w-7 h-7 rounded-full border border-[#3a3532] text-xs font-medium shrink-0"
+                      className="flex items-center justify-center w-7 h-7 rounded-full border border-[var(--card-border)] text-xs font-medium shrink-0"
                       style={{ color: accentOnBg }}
                     >
                       {s.n}
@@ -243,16 +282,18 @@ export default function EstimateCalculator({
             {trade.fields.map((f) => (
               <div key={f.key} className="mb-5">
                 <label className="block text-sm text-[var(--fg-muted)] mb-1.5">{f.label}</label>
-                <div className="flex items-center border border-[#3a3532] bg-[#26221f] rounded-md overflow-hidden focus-within:border-[var(--accent)]">
+                <div className="flex items-center border border-[var(--card-border)] bg-[var(--card)] rounded-md overflow-hidden focus-within:border-[var(--accent)]">
                   <input
                     type="number"
                     min="0"
                     value={size}
                     onChange={(e) => setSize(e.target.value)}
                     placeholder={f.placeholder}
-                    className="flex-1 bg-transparent px-4 py-2.5 outline-none text-[#f5f0e8] placeholder-[#6b6560]"
+                    className="flex-1 bg-transparent px-4 py-2.5 outline-none text-[var(--fg)] placeholder-[var(--fg-faint)]"
                   />
-                  <span className="px-4 text-sm text-[#6b6560] border-l border-[#3a3532]">{f.suffix}</span>
+                  <span className="px-4 text-sm text-[var(--fg-faint)] border-l border-[var(--card-border)]">
+                    {f.suffix}
+                  </span>
                 </div>
               </div>
             ))}
@@ -266,13 +307,13 @@ export default function EstimateCalculator({
                     onClick={() => setTierKey(t.key)}
                     style={
                       tierKey === t.key
-                        ? { backgroundColor: `color-mix(in oklab, ${accent} 12%, #26221f)` }
+                        ? { backgroundColor: `color-mix(in oklab, ${accent} 12%, ${theme.card})` }
                         : undefined
                     }
-                    className={`text-left px-4 py-2.5 rounded-md border transition-colors text-[#f5f0e8] ${
+                    className={`text-left px-4 py-2.5 rounded-md border transition-colors text-[var(--fg)] ${
                       tierKey === t.key
                         ? "border-[var(--accent)]"
-                        : "border-[#3a3532] bg-[#26221f] hover:border-[#6b6560]"
+                        : "border-[var(--card-border)] bg-[var(--card)] hover:border-[var(--fg-faint)]"
                     }`}
                   >
                     {t.label}
@@ -282,12 +323,14 @@ export default function EstimateCalculator({
             </div>
 
             {validSize && tier && (
-              <div className="border border-[#3a3532] rounded-lg p-5 mb-6 bg-[#26221f]">
-                <p className="text-xs uppercase tracking-wide text-[#a8a29e] mb-1">Estimated range</p>
-                <p className="text-2xl font-bold text-[#f5f0e8]" style={{ fontFamily: "Georgia, serif" }}>
+              <div className="border border-[var(--card-border)] rounded-lg p-5 mb-6 bg-[var(--card)]">
+                <p className="text-xs uppercase tracking-wide text-[var(--fg-muted)] mb-1">
+                  Estimated range
+                </p>
+                <p className="text-2xl font-bold text-[var(--fg)]">
                   {formatUSD(rangeLow)} – {formatUSD(rangeHigh)}
                 </p>
-                <p className="text-xs text-[#6b6560] mt-2">
+                <p className="text-xs text-[var(--fg-faint)] mt-2">
                   Based on typical {trade.label.toLowerCase()} costs. Final price depends on site
                   conditions, permits, and access.
                 </p>
@@ -298,7 +341,7 @@ export default function EstimateCalculator({
               disabled={!canGoToLead}
               onClick={goToLead}
               style={canGoToLead ? { color: onAccent } : undefined}
-              className="w-full bg-[var(--accent)] disabled:bg-[#3a3532] disabled:text-[#6b6560] font-medium py-3 rounded-md transition-opacity hover:opacity-90 disabled:hover:opacity-100"
+              className="w-full bg-[var(--accent)] disabled:bg-[var(--card-border)] disabled:text-[var(--fg-faint)] font-medium py-3 rounded-md transition-opacity hover:opacity-90 disabled:hover:opacity-100"
             >
               Get this range sent to me
             </button>
@@ -319,35 +362,35 @@ export default function EstimateCalculator({
               {providerLabel} will follow up to confirm details and firm up pricing.
             </p>
             <form onSubmit={submit} className="space-y-3">
-              <div className="flex items-center border border-[#3a3532] bg-[#26221f] rounded-md px-4 py-2.5 focus-within:border-[var(--accent)]">
-                <User className="w-4 h-4 text-[#6b6560] mr-3" />
+              <div className="flex items-center border border-[var(--card-border)] bg-[var(--card)] rounded-md px-4 py-2.5 focus-within:border-[var(--accent)]">
+                <User className="w-4 h-4 text-[var(--fg-faint)] mr-3" />
                 <input
                   required
                   value={lead.name}
                   onChange={(e) => setLead({ ...lead, name: e.target.value })}
                   placeholder="Full name"
-                  className="flex-1 bg-transparent outline-none placeholder-[#6b6560] text-[#f5f0e8]"
+                  className="flex-1 bg-transparent outline-none placeholder-[var(--fg-faint)] text-[var(--fg)]"
                 />
               </div>
-              <div className="flex items-center border border-[#3a3532] bg-[#26221f] rounded-md px-4 py-2.5 focus-within:border-[var(--accent)]">
-                <Phone className="w-4 h-4 text-[#6b6560] mr-3" />
+              <div className="flex items-center border border-[var(--card-border)] bg-[var(--card)] rounded-md px-4 py-2.5 focus-within:border-[var(--accent)]">
+                <Phone className="w-4 h-4 text-[var(--fg-faint)] mr-3" />
                 <input
                   required
                   type="tel"
                   value={lead.phone}
                   onChange={(e) => setLead({ ...lead, phone: e.target.value })}
                   placeholder="Phone number"
-                  className="flex-1 bg-transparent outline-none placeholder-[#6b6560] text-[#f5f0e8]"
+                  className="flex-1 bg-transparent outline-none placeholder-[var(--fg-faint)] text-[var(--fg)]"
                 />
               </div>
-              <div className="flex items-center border border-[#3a3532] bg-[#26221f] rounded-md px-4 py-2.5 focus-within:border-[var(--accent)]">
-                <Mail className="w-4 h-4 text-[#6b6560] mr-3" />
+              <div className="flex items-center border border-[var(--card-border)] bg-[var(--card)] rounded-md px-4 py-2.5 focus-within:border-[var(--accent)]">
+                <Mail className="w-4 h-4 text-[var(--fg-faint)] mr-3" />
                 <input
                   type="email"
                   value={lead.email}
                   onChange={(e) => setLead({ ...lead, email: e.target.value })}
                   placeholder="Email (optional)"
-                  className="flex-1 bg-transparent outline-none placeholder-[#6b6560] text-[#f5f0e8]"
+                  className="flex-1 bg-transparent outline-none placeholder-[var(--fg-faint)] text-[var(--fg)]"
                 />
               </div>
               {submitError && <p className="text-xs text-red-400">{submitError}</p>}
@@ -385,7 +428,7 @@ export default function EstimateCalculator({
 
         {/* Footer */}
         {(serviceArea || licensedInsured) && (
-          <div className="mt-10 pt-6 border-t border-[#3a3532] text-center">
+          <div className="mt-10 pt-6 border-t border-[var(--card-border)] text-center">
             {serviceArea && <p className="text-xs text-[var(--fg-faint)]">Serving {serviceArea}</p>}
             {licensedInsured && (
               <p className="text-xs text-[var(--fg-faint)] mt-1.5 inline-flex items-center gap-1.5">
