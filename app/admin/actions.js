@@ -89,6 +89,9 @@ export async function addClient(formData) {
   const backgroundColor = formData.get("background_color")?.toString() || "#1c1917";
   const logoUrl = formData.get("logo_url")?.toString().trim() || null;
   const portalPassword = formData.get("portal_password")?.toString().trim();
+  const phoneNumber = formData.get("phone_number")?.toString().trim() || null;
+  const serviceArea = formData.get("service_area")?.toString().trim() || null;
+  const licensedInsured = formData.get("licensed_insured") === "on";
 
   if (!businessName || !slug) {
     throw new Error("Business name and slug are required.");
@@ -100,6 +103,9 @@ export async function addClient(formData) {
     brand_color: brandColor,
     background_color: backgroundColor,
     logo_url: logoUrl,
+    phone_number: phoneNumber,
+    service_area: serviceArea,
+    licensed_insured: licensedInsured,
   };
   if (portalPassword) insertPayload.portal_password_hash = hashPortalPassword(portalPassword);
 
@@ -125,6 +131,9 @@ export async function updateClient(clientId, formData) {
   const backgroundColor = formData.get("background_color")?.toString() || "#1c1917";
   const logoUrl = formData.get("logo_url")?.toString().trim() || null;
   const portalPassword = formData.get("portal_password")?.toString().trim();
+  const phoneNumber = formData.get("phone_number")?.toString().trim() || null;
+  const serviceArea = formData.get("service_area")?.toString().trim() || null;
+  const licensedInsured = formData.get("licensed_insured") === "on";
 
   if (!businessName || !slug) {
     throw new Error("Business name and slug are required.");
@@ -143,6 +152,9 @@ export async function updateClient(clientId, formData) {
     brand_color: brandColor,
     background_color: backgroundColor,
     logo_url: logoUrl,
+    phone_number: phoneNumber,
+    service_area: serviceArea,
+    licensed_insured: licensedInsured,
   };
   // Only touch the password hash if a new password was actually typed in —
   // leaving the field blank keeps whatever password the client already has.

@@ -52,6 +52,36 @@ export default function ClientInfoFields({ client = {} }) {
           className={inputClass}
         />
       </div>
+      <div>
+        <label className="block text-sm text-[#a8a29e] mb-1.5">Phone number (optional)</label>
+        <input
+          name="phone_number"
+          defaultValue={client.phone_number || ""}
+          placeholder="(555) 123-4567"
+          className={inputClass}
+        />
+      </div>
+      <div>
+        <label className="block text-sm text-[#a8a29e] mb-1.5">Service area (optional)</label>
+        <input
+          name="service_area"
+          defaultValue={client.service_area || ""}
+          placeholder="Springfield and surrounding areas"
+          className={inputClass}
+        />
+        <p className="text-xs text-[#6b6560] mt-1">Shown in the footer as &ldquo;Serving {"{this}"}&rdquo;.</p>
+      </div>
+      <div className="flex items-center gap-2 pt-6">
+        <input
+          type="checkbox"
+          id="licensed_insured"
+          name="licensed_insured"
+          defaultChecked={client.licensed_insured || false}
+        />
+        <label htmlFor="licensed_insured" className="text-sm text-[#a8a29e]">
+          Show &ldquo;Licensed &amp; Insured&rdquo; badge
+        </label>
+      </div>
       <div className="sm:col-span-2">
         <label className="block text-sm text-[#a8a29e] mb-1.5">Client leads portal password</label>
         <input

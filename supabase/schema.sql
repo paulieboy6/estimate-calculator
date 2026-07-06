@@ -14,6 +14,9 @@ create table if not exists clients (
   brand_color text not null default '#c98a4b',
   background_color text not null default '#1c1917',
   portal_password_hash text,
+  phone_number text,
+  service_area text,
+  licensed_insured boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -21,6 +24,9 @@ create table if not exists clients (
 -- run again, `if not exists` makes them a no-op once the columns are there.
 alter table clients add column if not exists background_color text not null default '#1c1917';
 alter table clients add column if not exists portal_password_hash text;
+alter table clients add column if not exists phone_number text;
+alter table clients add column if not exists service_area text;
+alter table clients add column if not exists licensed_insured boolean not null default false;
 
 -- Which trades (and, within a trade, which tiers) a client's page shows.
 -- tier_keys empty/null means "show all tiers of this trade".
