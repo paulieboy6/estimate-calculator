@@ -9,7 +9,7 @@ async function loadClient(slug) {
 
   const { data: client } = await supabase
     .from("clients")
-    .select("id, slug, business_name, logo_url, brand_color")
+    .select("id, slug, business_name, logo_url, brand_color, background_color")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -53,6 +53,7 @@ export default async function ClientPage({ params }) {
         businessName: client.business_name,
         logoUrl: client.logo_url,
         brandColor: client.brand_color,
+        backgroundColor: client.background_color,
       }}
     />
   );

@@ -35,6 +35,15 @@ export default function ClientInfoFields({ client = {} }) {
         />
       </div>
       <div>
+        <label className="block text-sm text-[#a8a29e] mb-1.5">Background color</label>
+        <input
+          type="color"
+          name="background_color"
+          defaultValue={client.background_color || "#1c1917"}
+          className="h-10 w-20 bg-[#1c1917] border border-[#3a3532] rounded-md"
+        />
+      </div>
+      <div>
         <label className="block text-sm text-[#a8a29e] mb-1.5">Logo URL (optional)</label>
         <input
           name="logo_url"

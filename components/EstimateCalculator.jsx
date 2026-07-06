@@ -46,13 +46,14 @@ export default function EstimateCalculator({
   }
 
   const accent = branding?.brandColor || "#c98a4b";
+  const background = branding?.backgroundColor || "#1c1917";
   const businessName = branding?.businessName;
   const logoUrl = branding?.logoUrl;
-  // The eyebrow label below sits directly on the dark background, so its
-  // color needs its own contrast check — a client's brand color can be too
-  // light/dark to read there even though it works fine as a button/border
-  // accent elsewhere.
-  const eyebrowColor = readableColor(accent);
+  // The eyebrow label below sits directly on the page background, so its
+  // color needs its own contrast check against whatever background this
+  // client has chosen — a brand color can be too light/dark to read there
+  // even though it works fine as a button/border accent elsewhere.
+  const eyebrowColor = readableColor(accent, { background });
 
   function selectTrade(key) {
     setTradeKey(key);
@@ -100,8 +101,8 @@ export default function EstimateCalculator({
 
   return (
     <div
-      className="min-h-screen bg-[#1c1917] text-[#f5f0e8] font-sans flex flex-col items-center px-4 py-10"
-      style={{ "--accent": accent }}
+      className="min-h-screen bg-[var(--bg)] text-[#f5f0e8] font-sans flex flex-col items-center px-4 py-10"
+      style={{ "--accent": accent, "--bg": background }}
     >
       <div className="w-full max-w-xl">
         {/* Header */}

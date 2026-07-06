@@ -12,8 +12,13 @@ create table if not exists clients (
   business_name text not null,
   logo_url text,
   brand_color text not null default '#c98a4b',
+  background_color text not null default '#1c1917',
   created_at timestamptz not null default now()
 );
+
+-- Migration for projects created before background_color existed — safe to
+-- run again, `if not exists` makes it a no-op once the column is there.
+alter table clients add column if not exists background_color text not null default '#1c1917';
 
 -- Which trades (and, within a trade, which tiers) a client's page shows.
 -- tier_keys empty/null means "show all tiers of this trade".

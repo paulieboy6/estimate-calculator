@@ -85,6 +85,7 @@ export async function addClient(formData) {
   const businessName = formData.get("business_name")?.toString().trim();
   const slug = slugify(formData.get("slug")?.toString().trim() || businessName || "");
   const brandColor = formData.get("brand_color")?.toString() || "#c98a4b";
+  const backgroundColor = formData.get("background_color")?.toString() || "#1c1917";
   const logoUrl = formData.get("logo_url")?.toString().trim() || null;
 
   if (!businessName || !slug) {
@@ -93,7 +94,13 @@ export async function addClient(formData) {
 
   const { data: client, error } = await supabase
     .from("clients")
-    .insert({ business_name: businessName, slug, brand_color: brandColor, logo_url: logoUrl })
+    .insert({
+      business_name: businessName,
+      slug,
+      brand_color: brandColor,
+      background_color: backgroundColor,
+      logo_url: logoUrl,
+    })
     .select()
     .single();
 
@@ -110,6 +117,7 @@ export async function updateClient(clientId, formData) {
   const businessName = formData.get("business_name")?.toString().trim();
   const slug = slugify(formData.get("slug")?.toString().trim() || businessName || "");
   const brandColor = formData.get("brand_color")?.toString() || "#c98a4b";
+  const backgroundColor = formData.get("background_color")?.toString() || "#1c1917";
   const logoUrl = formData.get("logo_url")?.toString().trim() || null;
 
   if (!businessName || !slug) {
@@ -125,7 +133,13 @@ export async function updateClient(clientId, formData) {
 
   const { error } = await supabase
     .from("clients")
-    .update({ business_name: businessName, slug, brand_color: brandColor, logo_url: logoUrl })
+    .update({
+      business_name: businessName,
+      slug,
+      brand_color: brandColor,
+      background_color: backgroundColor,
+      logo_url: logoUrl,
+    })
     .eq("id", clientId);
   if (error) throw new Error(`Could not update client: ${error.message}`);
 
