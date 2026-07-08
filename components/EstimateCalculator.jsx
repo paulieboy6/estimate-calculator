@@ -331,8 +331,8 @@ export default function EstimateCalculator({
                   {formatUSD(rangeLow)} – {formatUSD(rangeHigh)}
                 </p>
                 <p className="text-xs text-[var(--fg-faint)] mt-2">
-                  Based on typical {trade.label.toLowerCase()} costs. Final price depends on site
-                  conditions, permits, and access.
+                  {trade.note ||
+                    `Based on typical ${trade.label.toLowerCase()} costs. Final price depends on site conditions, permits, and access.`}
                 </p>
               </div>
             )}
