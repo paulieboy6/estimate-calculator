@@ -1,9 +1,10 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { supabaseServer } from "@/lib/supabase/server";
 import { formatUSD } from "@/lib/trades";
 import { PORTAL_COOKIE_NAME, isValidPortalSession } from "@/lib/portalAuth";
-import { portalLogin, portalLogout } from "./actions";
+import { portalLogin, portalLogout, setPortalLeadContacted } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -17,15 +18,37 @@ async function getClient(slug) {
   return data;
 }
 
-async function getLeads(clientId) {
+async function getLeads(clientId, contacted) {
   const supabase = supabaseServer();
   const { data, error } = await supabase
     .from("leads")
-    .select("id, name, phone, email, trade, tier, size, estimate_low, estimate_high, created_at")
+    .select("id, name, phone, email, trade, tier, size, estimate_low, estimate_high, created_at, contacted")
     .eq("client_id", clientId)
+    .eq("contacted", contacted)
     .order("created_at", { ascending: false });
   if (error) throw new Error(`Could not load leads: ${error.message}`);
   return data || [];
+}
+
+async function getCounts(clientId) {
+  const supabase = supabaseServer();
+  const [{ count: newCount, error: newError }, { count: contactedCount, error: contactedError }] =
+    await Promise.all([
+      supabase
+        .from("leads")
+        .select("*", { count: "exact", head: true })
+        .eq("client_id", clientId)
+        .eq("contacted", false),
+      supabase
+        .from("leads")
+        .select("*", { count: "exact", head: true })
+        .eq("client_id", clientId)
+        .eq("contacted", true),
+    ]);
+  if (newError) throw new Error(`Could not load lead counts: ${newError.message}`);
+  if (contactedError) throw new Error(`Could not load lead counts: ${contactedError.message}`);
+
+  return { newCount: newCount || 0, contactedCount: contactedCount || 0 };
 }
 
 export default async function ClientPortalPage({ params, searchParams }) {
@@ -76,7 +99,11 @@ export default async function ClientPortalPage({ params, searchParams }) {
     );
   }
 
-  const leads = await getLeads(client.id);
+  const status = search?.status === "contacted" ? "contacted" : "new";
+  const [leads, counts] = await Promise.all([
+    getLeads(client.id, status === "contacted"),
+    getCounts(client.id),
+  ]);
   const logoutWithSlug = portalLogout.bind(null, slug);
 
   return (
@@ -91,25 +118,71 @@ export default async function ClientPortalPage({ params, searchParams }) {
           </form>
         </div>
 
-        {leads.length === 0 && <p className="text-sm text-[#a8a29e]">No leads yet.</p>}
+        <div className="flex gap-2 mb-6 border-b border-[#3a3532]">
+          {[
+            { key: "new", label: "New", count: counts.newCount },
+            { key: "contacted", label: "Contacted", count: counts.contactedCount },
+          ].map((tab) => (
+            <Link
+              key={tab.key}
+              href={tab.key === "new" ? `/c/${slug}/leads` : `/c/${slug}/leads?status=contacted`}
+              className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                status === tab.key
+                  ? "border-[#c98a4b] text-[#f5f0e8]"
+                  : "border-transparent text-[#a8a29e] hover:text-[#f5f0e8]"
+              }`}
+            >
+              {tab.label} ({tab.count})
+            </Link>
+          ))}
+        </div>
+
+        {leads.length === 0 && (
+          <p className="text-sm text-[#a8a29e]">
+            {status === "new" ? "No new leads." : "No contacted leads yet."}
+          </p>
+        )}
 
         <div className="space-y-2">
-          {leads.map((lead) => (
-            <div key={lead.id} className="border border-[#3a3532] bg-[#26221f] rounded-lg px-4 py-3">
-              <div className="flex items-center justify-between">
-                <p className="font-medium">{lead.name}</p>
-                <p className="text-xs text-[#6b6560]">{new Date(lead.created_at).toLocaleString()}</p>
+          {leads.map((lead) => {
+            const toggleAction = setPortalLeadContacted.bind(
+              null,
+              slug,
+              client.id,
+              lead.id,
+              status !== "contacted"
+            );
+            return (
+              <div key={lead.id} className="border border-[#3a3532] bg-[#26221f] rounded-lg px-4 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-medium">{lead.name}</p>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <p className="text-xs text-[#6b6560]">{new Date(lead.created_at).toLocaleString()}</p>
+                    <form action={toggleAction}>
+                      <button
+                        type="submit"
+                        className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-colors ${
+                          status === "contacted"
+                            ? "border-[#3a3532] text-[#a8a29e] hover:border-[#6b6560] hover:text-[#f5f0e8]"
+                            : "border-[#c98a4b] text-[#c98a4b] hover:bg-[#c98a4b]/10"
+                        }`}
+                      >
+                        {status === "contacted" ? "Mark as new" : "Mark as contacted"}
+                      </button>
+                    </form>
+                  </div>
+                </div>
+                <p className="text-sm text-[#a8a29e]">
+                  {lead.trade} · {lead.tier} · {lead.size} units ·{" "}
+                  {formatUSD(lead.estimate_low)}–{formatUSD(lead.estimate_high)}
+                </p>
+                <p className="text-sm text-[#a8a29e]">
+                  {lead.phone}
+                  {lead.email ? ` · ${lead.email}` : ""}
+                </p>
               </div>
-              <p className="text-sm text-[#a8a29e]">
-                {lead.trade} · {lead.tier} · {lead.size} units ·{" "}
-                {formatUSD(lead.estimate_low)}–{formatUSD(lead.estimate_high)}
-              </p>
-              <p className="text-sm text-[#a8a29e]">
-                {lead.phone}
-                {lead.email ? ` · ${lead.email}` : ""}
-              </p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
