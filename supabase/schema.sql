@@ -79,10 +79,15 @@ create table if not exists leads (
   size numeric not null,
   estimate_low numeric not null,
   estimate_high numeric not null,
+  contacted boolean not null default false,
   created_at timestamptz not null default now()
 );
 
+-- Migration for projects created before this column existed.
+alter table leads add column if not exists contacted boolean not null default false;
+
 create index if not exists leads_client_id_created_at_idx on leads (client_id, created_at desc);
+create index if not exists leads_contacted_idx on leads (contacted);
 
 -- Lock every table down. The app only ever talks to Supabase with the
 -- service-role key (server-side), which bypasses RLS by design — this just

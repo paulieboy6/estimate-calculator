@@ -178,3 +178,11 @@ export async function updateClient(clientId, formData) {
   revalidatePath(`/c/${existing.slug}`);
   if (slug !== existing.slug) revalidatePath(`/c/${slug}`);
 }
+
+export async function setLeadContacted(leadId, contacted) {
+  const supabase = supabaseServer();
+  const { error } = await supabase.from("leads").update({ contacted }).eq("id", leadId);
+  if (error) throw new Error(`Could not update lead: ${error.message}`);
+
+  revalidatePath("/admin/leads");
+}
